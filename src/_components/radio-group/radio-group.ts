@@ -1,16 +1,19 @@
 import '../button-group/button-group';
-import { classMap } from 'lit/directives/class-map.js';
 import { customElement, property, query, state } from 'lit/decorators.js';
 import { FormControlController } from '../../internal/form';
 import { HasSlotController } from '../../internal/slot';
-import { html } from 'lit';
+import { html, css } from 'lit';
 import { watch } from '../../internal/watch';
 import SolidElement from '../../internal/solid-element';
-import styles from './radio-group.styles';
-import type { CSSResultGroup } from 'lit';
+import cx from 'classix';
 import type { SolidFormControl } from '../../internal/solid-element';
+
 import type SdRadio from '../radio/radio';
 import type SdRadioButton from '../radio-button/radio-button';
+
+import componentStyles from '../../styles/component.styles';
+import formControlStyles from '../../styles/form-control.styles';
+
 
 /**
  * @summary Radio groups are used to group multiple [radios](/components/radio) or [radio buttons](/components/radio-button) so they function as a single form control.
@@ -23,6 +26,7 @@ import type SdRadioButton from '../radio-button/radio-button';
  * @slot - The default slot where `<sd-radio>` or `<sd-radio-button>` elements are placed.
  * @slot label - The radio group's label. Required for proper accessibility. Alternatively, you can use the `label`
  *  attribute.
+ * @slot help-text - The radio group's help-text.
  *
  * @event sd-change - Emitted when the radio group's selected value changes.
  * @event sd-input - Emitted when the radio group receives user input.
@@ -36,8 +40,6 @@ import type SdRadioButton from '../radio-button/radio-button';
  */
 @customElement('sd-radio-group')
 export default class SdRadioGroup extends SolidElement implements SolidFormControl {
-  static styles: CSSResultGroup = styles;
-
   protected readonly formControlController = new FormControlController(this);
   private readonly hasSlotController = new HasSlotController(this, 'help-text', 'label');
   private customValidityMessage = '';
@@ -64,6 +66,8 @@ export default class SdRadioGroup extends SolidElement implements SolidFormContr
 
   /** The current value of the radio group, submitted as a name/value pair with form data. */
   @property({ reflect: true }) value = '';
+
+  @property({ reflect: true }) size: 'sm' | 'lg' = 'lg';
 
   /**
    * By default, form controls are associated with the nearest containing `<form>` element. This attribute allows you
@@ -257,31 +261,31 @@ export default class SdRadioGroup extends SolidElement implements SolidFormContr
     return html`
       <fieldset
         part="form-control"
-        class=${classMap({
-      'form-control': true,
-      'form-control--medium': true,
-      'form-control--radio-group': true,
-      'form-control--has-label': hasLabel,
-      'form-control--has-help-text': hasHelpText
-    })}
         role="radiogroup"
         aria-labelledby="label"
         aria-describedby="help-text"
         aria-errormessage="error-message"
-      >
+        class=${cx(
+        'border-none p-0 m-0 form-control--medium form-control--radio-group',
+        'form-control--has-label' && hasLabel,
+        'form-control--has-help-text' && hasHelpText
+      )}>
         <label
           part="form-control-label"
           id="label"
-          class="form-control__label"
+          class="p-0 mb-8"
           aria-hidden=${hasLabel ? 'false' : 'true'}
+          size=${this.size}
           @click=${this.handleLabelClick}
         >
           <slot name="label">${this.label}</slot>
         </label>
 
         <div part="form-control-input" class="form-control-input">
-          <div class="visually-hidden">
-            <div id="error-message" aria-live="assertive">${this.errorMessage}</div>
+          <div class="visually-hidden absolute w-1 h-1 p-0 overflow-hidden whitespace-nowrap border-0">
+            <div id="error-message" aria-live="assertive">
+              ${this.errorMessage}
+            </div>
             <label class="radio-group__validation">
               <input
                 type="text"
@@ -293,13 +297,11 @@ export default class SdRadioGroup extends SolidElement implements SolidFormContr
             </label>
           </div>
 
-          ${this.hasButtonGroup
-        ? html`
-                <sd-button-group part="button-group" exportparts="base:button-group__base">
-                  ${defaultSlot}
-                </sd-button-group>
-              `
-        : defaultSlot}
+          ${this.hasButtonGroup ? html`
+            <sd-button-group part="button-group" exportparts="base:button-group__base">
+              ${defaultSlot}
+            </sd-button-group>
+          ` : defaultSlot}
         </div>
 
         <slot
@@ -315,6 +317,30 @@ export default class SdRadioGroup extends SolidElement implements SolidFormContr
     `;
     /* eslint-enable lit-a11y/click-events-have-key-events */
   }
+
+  /**
+   * Inherits Tailwind classes and includes additional styling.
+   */
+  static styles = [
+    ...SolidElement.styles,
+    css`
+      ${componentStyles}
+      ${formControlStyles}
+
+      :host {
+        display: block;
+      }
+
+      .radio-group--required .radio-group__label::after {
+        content: var(--sd-input-required-content);
+        margin-inline-start: var(--sd-input-required-content-offset);
+      }
+
+      .visually-hidden {
+        clip: rect(0, 0, 0, 0);
+      }
+    `
+  ];
 }
 
 declare global {

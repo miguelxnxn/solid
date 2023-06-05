@@ -1,6 +1,8 @@
 const plugin = require('tailwindcss/plugin');
 const theme = require('./scripts/tailwind/create-theme.cjs');
 
+console.log(theme)
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/components/**/*.ts', '!./src/**/*.{stories,styles,test}.*'],

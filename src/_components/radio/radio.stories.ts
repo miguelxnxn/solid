@@ -1,13 +1,14 @@
 import '../../solid-components';
-import { storybookDefaults, storybookTemplate } from '../../../scripts/storybook/helper';
+import { storybookDefaults, storybookTemplate, storybookHelpers } from '../../../scripts/storybook/helper';
 
 const { argTypes, args } = storybookDefaults('sd-radio');
 const { generateTemplate } = storybookTemplate('sd-radio');
+const { overrideArgs } = storybookHelpers('sd-radio');
 
 export default {
   title: 'Components/sd-radio',
   component: 'sd-radio',
-  args,
+  args: overrideArgs([{type: 'slot', name: 'default', value: 'Default Slot' }]),
   argTypes,
 };
 
@@ -19,5 +20,66 @@ export default {
 export const Default = {
   render: (args: any) => {
     return generateTemplate({ args });
+  }
+};
+
+
+/**
+ * Use the disabled attribute to disable a input radio. Clicks will be suppressed until the disabled state is removed
+ */
+
+export const Disabled = {
+  parameters: { controls: { exclude: ['disabled'] } },
+  render: (args: any) => {
+    return generateTemplate({
+      axis: {
+        y: [
+          {type: 'attribute', name: 'size'},
+          {type: 'attribute', name: 'invalid'}
+        ]
+      },
+      constants: { type: 'attribute', name: 'disabled', value: true },
+      args
+    },  
+    )
+  }
+};
+
+
+/**
+ * Use the `size` attribute to change the size of the input radio. This attribute affects the font-size within the element, while the element itself remains the same size.
+ */
+
+export const Size = {
+  parameters: { controls: { exclude: ['size'] } },
+  render: (args: any) => {
+    return generateTemplate({
+      axis: {
+        x: {type: 'attribute', name: 'size'}
+      },
+      args
+    },  
+    )
+  }
+};
+
+/**
+ * Use the `invalid` attribute to mark the element is not in a format or a value the application will accept.
+ */
+
+export const Invalid = {
+  parameters: { controls: { exclude: ['invalid'] } },
+  render: (args: any) => {
+    return generateTemplate({
+      axis: {
+        y: [
+          {type: 'attribute', name: 'size'},
+          {type: 'attribute', name: 'disabled'}
+        ]
+      },
+      constants: { type: 'attribute', name: 'invalid', value: true },
+      args
+    },  
+    )
   }
 };

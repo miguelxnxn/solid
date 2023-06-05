@@ -26,24 +26,27 @@ import cx from 'classix';
  */
 @customElement('sd-radio')
 export default class SdRadio extends SolidElement {
+  /** A Boolean attribute which, if present, indicates that this radio button is the default check one in the group. */
   @state() checked = false;
   @state() protected hasFocus = false;
-
+ 
+  /** The radio's size. */
+  @property({ reflect: true }) size: 'sm' | 'lg' = 'lg';
+  
+  /**  A Boolean attribute which, if present, marks the radio Button valid or invalid  */
+  @property({ type: Boolean, reflect: true }) invalid = false;
+  
+  /** A Boolean attribute which, if present, disables the radio. */
+  @property({ type: Boolean, reflect: true }) disabled = false;
+  
   /** The radio's value. When selected, the radio group will receive this value. */
   @property() value: string;
-
-  /** The radio's size. */
-  @property({ reflect: true }) size: 'small' | 'medium' | 'large' = 'medium';
-
-  /** Disables the radio. */
-  @property({ type: Boolean, reflect: true }) disabled = false;
 
   connectedCallback() {
     super.connectedCallback();
     this.handleBlur = this.handleBlur.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handleFocus = this.handleFocus.bind(this);
-
     this.setInitialAttributes();
     this.addEventListeners();
   }
@@ -56,6 +59,8 @@ export default class SdRadio extends SolidElement {
     this.addEventListener('blur', this.handleBlur);
     this.addEventListener('click', this.handleClick);
     this.addEventListener('focus', this.handleFocus);
+
+    console.log('hasFocus 1', this.hasFocus);
   }
 
   private removeEventListeners() {
@@ -67,6 +72,8 @@ export default class SdRadio extends SolidElement {
   private handleBlur() {
     this.hasFocus = false;
     this.emit('sd-blur');
+
+    console.log('hasFocus3 ', this.hasFocus);
   }
 
   private handleClick() {
@@ -78,6 +85,8 @@ export default class SdRadio extends SolidElement {
   private handleFocus() {
     this.hasFocus = true;
     this.emit('sd-focus');
+
+    console.log('hasFocus 2', this.hasFocus);
   }
 
   private setInitialAttributes() {
@@ -99,30 +108,42 @@ export default class SdRadio extends SolidElement {
 
   render() {
     return html`
-      <span
-        part="base"
-        class=${cx(
-          'radio inline-flex items-start font-[var(--sd-input-font-family)] text-[var(--sd-input-font-size-medium)] font-[var(--sd-input-font-family)] text-[var(--sd-input-label-color)] cursor-pointer align-middle',
-          this.checked && 'radio--checked',
-          this.disabled && 'opacity-50 cursor-not-allowed',
-          this.hasFocus && 'radio--focused',
-          {
-            /* sizes, fonts */
-            small: 'radio--small',
-            medium: 'radio--medium',
-            large: 'radio--large'
-          }[this.size]
-        )}
-      >
-        <span 
-          part="${`control${this.checked ? ' control--checked' : ''}`}"
-          class="radio__control relative inline-flex items-center justify-center rounded-circle text-transparent bg-[var(--sd-input-background-color)] h-[var(--toggle-size)] w-[var(--toggle-size)]"
-        >
-          ${this.checked ? html` <sd-icon part="checked-icon" class="radio__checked-icon" library="system" name="radio"></sd-icon> `
-            : ''}
+      <span part="base" class=${cx(
+        'radio inline-flex items-start items-center font-[var(--sd-input-font-family)] text-[var(--sd-input-font-size-medium)] font-[var(--sd-input-font-family)] text-[var(--sd-input-label-color)] cursor-pointer align-middle',
+        this.checked && 'radio--checked',
+        this.disabled && 'hover:cursor-not-allowed',
+        this.hasFocus && 'radio--focused',
+        {
+          /* sizes, fonts */
+          sm: 'radio--small text-sm',
+          lg: 'radio--large text-base'
+        }[this.size]
+      )}>
+        <span part="${`control${this.checked ? 'control--checked' : ''}`}" class=${cx(
+          'radio__control relative inline-flex items-center justify-center border rounded-full bg-white h-4 w-4',
+          this.disabled && 'border-neutral-500'
+            || this.invalid && 'border-warning' 
+            || this.checked && 'border-accent hover:border-accent-300'
+            || 'border-neutral-800 hover:bg-neutral-200'
+        )}>
+          ${this.checked ? html` <span part="checked" class=${cx(
+            'rounded-full inline-flex text-white border bg-accent h-2.5 w-2.5',
+            this.disabled && 'bg-neutral-500'
+              || this.invalid && 'bg-warning' 
+              || this.checked && 'bg-accent hover:bg-accent-300'
+              || 'bg-neutral-800'
+          )}></span> ` : ''}
         </span>
 
-        <slot part="label" class="radio__label inline-block text-[var(--sd-input-label-color)] leading-[var(--toggle-size)] ms-"></slot>
+        <slot 
+          part="label"
+          class=${cx(
+            'ml-2 select-none inline-block text-[var(--sd-input-label-color)]',
+            this.disabled && 'text-neutral-500'
+            || this.invalid && 'text-warning'
+            || 'text-neutral-800'
+          )}>
+        </slot>
       </span>
     `;
   }
@@ -141,67 +162,16 @@ export default class SdRadio extends SolidElement {
         outline: 0;
       }
 
-      .radio--small {
-        --toggle-size: var(--sd-toggle-size-small);
-        font-size: var(--sd-input-font-size-small);
-      }
-
-      .radio--medium {
-        --toggle-size: var(--sd-toggle-size-medium);
-        font-size: var(--sd-input-font-size-medium);
-      }
-
-      .radio--large {
-        --toggle-size: var(--sd-toggle-size-large);
-        font-size: var(--sd-input-font-size-large);
-      }
-
-      .radio__checked-icon {
-        display: inline-flex;
-        width: var(--toggle-size);
-        height: var(--toggle-size);
-      }
-
       .radio__control {
         flex: 0 0 auto;
-        border: solid var(--sd-input-border-width) var(--sd-input-border-color);
         transition: var(--sd-transition-fast) border-color, var(--sd-transition-fast) background-color,
           var(--sd-transition-fast) color, var(--sd-transition-fast) box-shadow;
       }
 
-      /* Hover */
-      .radio:not(.radio--checked):not(.radio--disabled) .radio__control:hover {
-        border-color: var(--sd-input-border-color-hover);
-        background-color: var(--sd-input-background-color-hover);
-      }
-
-      /* Checked */
-      .radio--checked .radio__control {
-        color: var(--sd-color-neutral-0);
-        border-color: var(--sd-color-primary-600);
-        background-color: var(--sd-color-primary-600);
-      }
-
-      /* Checked + hover */
-      .radio.radio--checked:not(.radio--disabled) .radio__control:hover {
-        border-color: var(--sd-color-primary-500);
-        background-color: var(--sd-color-primary-500);
-      }
-
       /* Checked + focus */
       :host(:focus-visible) .radio__control {
-        outline: var(--sd-focus-ring);
-        outline-offset: var(--sd-focus-ring-offset);
-      }
-
-      /* When the control isn't checked, hide the circle for Windows High Contrast mode a11y */
-      .radio:not(.radio--checked) svg circle {
-        opacity: 0;
-      }
-
-      .radio__label {
-        margin-inline-start: 0.5em;
-        user-select: none;
+        outline: 2px solid #00358E;
+        outline-offset: 2px;
       }
     `
   ];
