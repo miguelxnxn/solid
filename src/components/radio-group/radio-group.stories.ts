@@ -2,7 +2,7 @@ import '../../solid-components';
 
 import { storybookDefaults, storybookTemplate, storybookHelpers } from '../../../scripts/storybook/helper';
 
-const { argTypes, args } = storybookDefaults('sd-radio-group');
+const { argTypes } = storybookDefaults('sd-radio-group');
 const { generateTemplate } = storybookTemplate('sd-radio-group');
 const { overrideArgs } = storybookHelpers('sd-radio-group');
 

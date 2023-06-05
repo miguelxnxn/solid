@@ -322,7 +322,7 @@ export default class SdRadioGroup extends SolidElement implements SolidFormContr
    * Inherits Tailwind classes and includes additional styling.
    */
   static styles = [
-    ...SolidElement.styles,
+    SolidElement.styles,
     css`
       ${componentStyles}
       ${formControlStyles}

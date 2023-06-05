@@ -152,7 +152,7 @@ export default class SdRadio extends SolidElement {
    * Inherits Tailwind classes and includes additional styling.
    */
   static styles = [
-    ...SolidElement.styles,
+    SolidElement.styles,
     css`
       :host {
         display: block;
