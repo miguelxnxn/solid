@@ -1,0 +1,31 @@
+steps:
+  ## Deploy to CDN
+  - task: AzureCLI@2
+    displayName: 'Deploying to Azure Blob Storage'
+    inputs:
+      azureSubscription: 'Workload CI/CD Service Connection (S_STATICCONTENT_PROD)'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        if [[ $(deployment) != "none" ]]; then
+          ## create an array of folder paths to push
+          folderPaths=($(branch) $(version) $(patchWildcardPath) $(majorWildcardPath) $(minorWildcardPath))
+          ## loop through the array and push the code to each folder path
+          for folderPath in "${folderPaths[@]}"; do
+            if [[ -z $folderPath ]]; then
+              echo "Folder path is empty, therefore no target folder to push to."
+            else
+              echo "Target folder path '$folderPath'..."
+              set -x
+              az storage blob upload-batch \
+                --destination \$web \
+                --account-name "safesoliddesignsysprod" \
+                --source "packages/components/dist$(cdnPath)" \
+                --destination-path "/$folderPath" \
+                --overwrite
+              set +x
+            fi
+          done
+        else
+          echo "Deployment type is 'none', therefore nothing to deploy."
+        fi

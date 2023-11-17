@@ -1,0 +1,143 @@
+trigger: none
+
+variables:
+  deployment: ''
+  version: ''
+  patchWildcardPath: ''
+  majorWildcardPath: ''
+  minorWildcardPath: ''
+  cdnPath: ''
+  branch: ''
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '16.x'
+    displayName: 'Install Node.js'
+
+  ## Only on the `main` branch, check if the last commit comes from semantic-release-bot and set deployment type accordingly
+  - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+      - bash: |
+          first_line=$(git log -1 --pretty=%s)
+          echo $first_line
+          if [[ $first_line == "chore(release/components):"* ]]; then
+            echo "The last commit is a version bump => code will be deployed."
+            echo "##vso[task.setvariable variable=deployment]code"
+          elif [[ $first_line == "docs:"* ]]; then
+            echo "The last commit is a docs change only => only storybook will be deployed."
+            echo "##vso[task.setvariable variable=deployment]docs"
+          else
+            echo "The last commit is neither a version bump nor a docs change only => code will not be deployed."
+            echo "##vso[task.setvariable variable=deployment]none"
+          fi
+        displayName: 'Set deployment type'
+
+      - bash: |
+          echo "$(deployment)"
+        displayName: 'Log deployment type'
+
+      ## Only on the `main` branch, set version and wildcard variables according to the deployment type (code or docs)
+      - bash: |
+          cdnPath=''
+          if [[ $(deployment) != "none" ]]; then
+            ## Get version, set to local variable and create local version array variable
+            version=$(node -p "require('./packages/components/package.json').version")
+            echo "Version is $version"
+            versionArray=($(echo "$version" | tr '.' ' '))
+            echo "Version array is ${versionArray[@]}"
+
+            ## Create local wildcard variables
+            patchWildcardPath='x.x.x'
+            majorWildcardPath="${versionArray[0]}.x.x"
+            minorWildcardPath="${versionArray[0]}.${versionArray[1]}.x"
+
+            ## Set cdnPath variable according to deployment type and add it to all local variables
+            if [[ $(deployment) == "docs" ]]; then
+              cdnPath='/storybook'
+              version+=$cdnPath
+              patchWildcardPath+=${cdnPath}
+              majorWildcardPath+=${cdnPath}
+              minorWildcardPath+=${cdnPath}
+            fi
+
+            ## Set local variables value to azure variables and log them
+            ## Version
+            echo "##vso[task.setvariable variable=version]$version"
+            echo Azure variable version is "$(version)"
+
+            ## Patch Wildcard
+            echo "##vso[task.setvariable variable=patchWildcardPath]$patchWildcardPath"
+            echo Azure variable patchWildcardPath is "$(patchWildcardPath)"
+
+            ## Major Wildcard
+            echo "##vso[task.setvariable variable=majorWildcardPath]$majorWildcardPath"
+            echo Azure variable majorWildcardPath is "$(majorWildcardPath)"
+
+            ## Minor Wildcard
+            echo "##vso[task.setvariable variable=minorWildcardPath]$minorWildcardPath"
+            echo Azure variable minorWildcardPath is "$(minorWildcardPath)"
+
+            ## CDN Patch
+            echo "##vso[task.setvariable variable=cdnPath]$cdnPath"
+            echo Azure variable cdnPath is "$(cdnPath)"
+          else
+            echo "Deployment type is 'none', therefore no variables are set."
+          fi
+        displayName: 'Set version and wildcard variables'
+
+  ## On all other branches, set the deployment type to 'code' (!= "none") to make sure the code is built in the step below
+  - ${{ if ne(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+      - script: |
+          echo "Pipeline runs on feature branch => everything will be deployed."
+          echo "##vso[task.setvariable variable=deployment]code"
+        displayName: 'Set deployment type for feature branches'
+      ## If the branch is not 'main' then normalize the branch name (remove 'refs/heads/' and replace '/' with '_') and set the [branch] variable to the normalized
+      ## branch name to use the branch name as folder path in the CDN
+      - bash: |
+          set -x
+          REF=$(Build.SourceBranch)
+          echo $REF
+          REG='[a-z]*/[a-z]*/([0-9a-zA-Z/-]*)'
+          if [[ $REF =~ $REG ]]; then echo found; fi
+          branch=${BASH_REMATCH[1]////_}
+          echo $branch
+          # IMPORTANT: We have to stop "set -x" here to prevent accidental apostrophes in the branch name
+          # https://github.com/microsoft/azure-pipelines-tasks/issues/10331#issuecomment-1423932651
+          set +x
+          echo "##vso[task.setvariable variable=branch]$branch"
+        displayName: 'Normalize branch name (remove refs/heads/ and replace / with _)'
+      - bash: |
+          echo "$(branch)"
+        displayName: 'Log normalized branch name'
+
+  - script: |
+      if [[ $(deployment) != "none" ]]; then
+        npm i pnpm@8.6.2 -g
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true pnpm i
+        cd packages/components && pnpm run build.cdn
+      else
+        echo "Deployment type is 'none', therefore no build needed."
+      fi
+    displayName: 'Install dependencies and build'
+
+  ## Push to CDN folder
+  - template: templates/push-to-storage.template.yml
+  ## Purge CDN
+  - template: templates/purge-cdn.template.yml
+
+  ## If deployment variable is set to 'none' do nothing
+  - script: |
+      if [[ $(deployment) == "code" ]]; then
+        echo "Everything has been deployed."
+      elif [[ $(deployment) == "docs" ]]; then
+        echo "Only storybook has been deployed."
+      else
+        echo "Nothing has been deployed."
+      fi
+    displayName: 'Deployment status'
