@@ -734,6 +734,31 @@ export const Mouseless = {
   }
 };
 
+export const Form = {
+  render: (args: any) => {
+    return html`<form class="form-story w-[250px]">
+      ${generateTemplate({
+        constants: [{ type: 'attribute', name: 'required', value: true }],
+        args
+      })}<sd-button type="submit">Submit</sd-button>
+    </form>`;
+  },
+
+  play: async ({ canvasElement }: { canvasElement: HTMLUnknownElement }) => {
+    const el = canvasElement.querySelector('.form-story sd-input');
+    await waitUntil(() => el?.shadowRoot?.querySelector('input'));
+
+    const form = document.querySelector('form.form-story');
+    form!.addEventListener('submit', event => {
+      event.preventDefault();
+      alert('All fields are valid!');
+    });
+
+    const button = canvasElement.querySelector('.form-story sd-button');
+    button!.click();
+  }
+};
+
 /**
  * Sample implementation of a currency stepper.
  */

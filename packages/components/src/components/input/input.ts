@@ -78,6 +78,8 @@ export default class SdInput extends SolidElement implements SolidFormControl {
 
   @query('#input') input: HTMLInputElement;
 
+  @query('#name-error') nameError: HTMLDivElement;
+
   @state() private hasFocus = false;
 
   /**
@@ -272,8 +274,13 @@ export default class SdInput extends SolidElement implements SolidFormControl {
     this.emit('sd-input');
   }
 
-  private handleInvalid() {
+  private handleInvalid(event: Event) {
     this.formControlController.setValidity(false);
+    this.formControlController.emitInvalidEvent(event);
+    event.preventDefault();
+    console.log('invalid', event);
+    this.nameError.textContent = `Error: ${event.target.validationMessage}`;
+    this.nameError.hidden = false;
   }
 
   private handleKeyDown(event: KeyboardEvent) {
@@ -648,7 +655,7 @@ export default class SdInput extends SolidElement implements SolidFormControl {
                   ></slot>`
                 : ''
             }
-            
+
           </div>
         </div>
 
@@ -661,7 +668,7 @@ export default class SdInput extends SolidElement implements SolidFormControl {
         >
           ${this.helpText}
         </slot>
-
+        ${isInvalid && html`<div id="name-error" aria-live="polite" hidden></div>`}
         </div>
       </div>
     `;
