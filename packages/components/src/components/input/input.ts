@@ -78,7 +78,7 @@ export default class SdInput extends SolidElement implements SolidFormControl {
 
   @query('#input') input: HTMLInputElement;
 
-  @query('#name-error') nameError: HTMLDivElement;
+  @query('#error-message') nameError: HTMLDivElement;
 
   @state() private hasFocus = false;
 
@@ -278,9 +278,7 @@ export default class SdInput extends SolidElement implements SolidFormControl {
     this.formControlController.setValidity(false);
     this.formControlController.emitInvalidEvent(event);
     event.preventDefault();
-    console.log('invalid', event);
-    this.nameError.textContent = `Error: ${event.target.validationMessage}`;
-    this.nameError.hidden = false;
+    this.nameError.textContent = (event.target as HTMLInputElement).validationMessage;
   }
 
   private handleKeyDown(event: KeyboardEvent) {
@@ -419,9 +417,8 @@ export default class SdInput extends SolidElement implements SolidFormControl {
     const hasLabel = this.label ? true : !!slots['label'];
     const hasHelpText = this.helpText ? true : !!slots['helpText'];
     const hasClearIcon = this.clearable && !this.readonly && (typeof this.value === 'number' || this.value.length > 0);
-    const hasValidationAttr = this.required || !!this.pattern || !!this.minlength || !!this.maxlength;
-    const isInvalid = hasValidationAttr && !this.checkValidity();
-    const isValid = hasValidationAttr && this.checkValidity();
+    const isInvalid = this.hasAttribute('data-user-invalid') && !this.checkValidity();
+    const isValid = this.hasAttribute('data-user-valid') && this.checkValidity();
     // Hierarchy of input states:
     const inputState = this.disabled
       ? 'disabled'
@@ -668,7 +665,7 @@ export default class SdInput extends SolidElement implements SolidFormControl {
         >
           ${this.helpText}
         </slot>
-        ${isInvalid && html`<div id="name-error" aria-live="polite" hidden></div>`}
+        <div id="error-message" class="text-error text-sm mt-0.5" part="error-message" aria-live="polite" ?hidden=${!isInvalid}></div>
         </div>
       </div>
     `;
